@@ -12,10 +12,22 @@ class DQN(torch.nn.Module):
         self.actions = np.arange(env.action_space.n)
         self.learning_rate = learning_rate
 
-        ### Construcción de la red neuronal
+        ### Construcción de la red
         self.model = net
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        # Se añade nuevo
+        params = []
+        params.append({'params': self.model.q_layers.parameters()})
+        if hasattr(self.model, 'w_input') and self.model.w_input is not None:
+            lr_input = self.learning_rate
+            params.append({'params': self.model.w_input, 'lr': lr_input})
+        if hasattr(self.model, 'w_output') and self.model.w_output is not None:
+            lr_output = self.learning_rate
+            params.append({'params': self.model.w_output, 'lr': lr_output})
+
+        # acaba aquí el añadido
+
+        self.optimizer = torch.optim.RMSprop(params, lr=self.learning_rate)
 
         ### Se ofrece la opción de trabajar con CUDA
         if self.device == 'cuda':
@@ -47,7 +59,7 @@ class PGReinforce(torch.nn.Module):
         self.learning_rate = learning_rate
 
         ### Construcción de la red neuronal
-        self.model = torch.nn.Sequential(net, torch.nn.Softmax(dim=-1))
+        self.model = net
 
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 

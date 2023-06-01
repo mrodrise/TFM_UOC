@@ -24,6 +24,7 @@ class DQNAgent:
     def initialize(self):
         self.update_loss = []
         self.training_rewards = []
+        self.training_loss = []
         self.mean_training_rewards = []
         self.sync_eps = []
         self.total_reward = 0
@@ -59,13 +60,13 @@ class DQNAgent:
         self.gamma = gamma
 
         # Rellenamos el buffer con N experiencias aleatorias ()
-        print("Filling replay buffer...")
+        print("Rellenando el buffer de repetición...")
         while self.buffer.burn_in_capacity() < 1:
             self.take_step(self.epsilon, mode='explore')
 
         episode = 0
         training = True
-        print("Training...")
+        print("Entrenando...")
         while training:
             self.state0 = self.env.reset()
             self.total_reward = 0
@@ -88,24 +89,25 @@ class DQNAgent:
                 if gamedone:
                     episode += 1
                     self.training_rewards.append(self.total_reward)  # guardamos las recompensas obtenidas
+                    self.training_loss.append(sum(self.update_loss))
                     self.update_loss = []
                     mean_rewards = np.mean(  # calculamos la media de recompensa de los últimos X episodios
                         self.training_rewards[-self.nblock:])
                     self.mean_training_rewards.append(mean_rewards)
 
-                    print("\rEpisode {:d} Mean Rewards {:.2f} Epsilon {}\t\t".format(
+                    print("\rEpisodio {:d} Recompensa media {:.2f} Epsilon {}\t\t".format(
                         episode, mean_rewards, self.epsilon), end="")
 
                     # Comprobamos que todavía quedan episodios
                     if episode >= max_episodes:
                         training = False
-                        print('\nEpisode limit reached.')
+                        print('\nLímite de episodios alcanzado.')
                         break
 
                     # Termina el juego si la media de recompensas ha llegado al umbral fijado para este juego
                     if mean_rewards >= self.reward_threshold:
                         training = False
-                        print('\nEnvironment solved in {} episodes!'.format(
+                        print('\nEl entorno se resolvió en {} episodios!'.format(
                             episode))
                         break
 
@@ -119,7 +121,8 @@ class DQNAgent:
         rewards_vals = torch.FloatTensor(rewards).to(device=self.dnnetwork.device)
         actions_vals = torch.LongTensor(np.array(actions)).reshape(-1, 1).to(
             device=self.dnnetwork.device)
-        dones_t = torch.ByteTensor(dones).to(device=self.dnnetwork.device)
+#        dones_t = torch.ByteTensor(dones).to(device=self.dnnetwork.device)
+        dones_t = torch.BoolTensor(dones).to(device=self.dnnetwork.device)
 
         # Obtenemos los valores de Q de la red principal
         qvals = torch.gather(self.dnnetwork.get_qvals(states), 1, actions_vals)
@@ -165,6 +168,13 @@ class DQNAgent:
         plt.ylabel('Rewards')
         plt.legend(loc="upper left")
         plt.show()
+    def plot_loss(self):
+        plt.figure(figsize=(12,8))
+        plt.suptitle('Evolución de la pérdida')
+        plt.plot(self.training_loss)
+        plt.xlabel('Episodios')
+        plt.ylabel('Pérdida')
+        plt.show()
 
 
 class reinforceAgent:
@@ -184,6 +194,7 @@ class reinforceAgent:
         self.batch_states = []
         self.batch_counter = 1
         self.training_rewards = []
+        self.training_loss = []
         self.mean_training_rewards = []
         self.update_loss = []
 
@@ -195,7 +206,7 @@ class reinforceAgent:
         episode = 0
         action_space = np.arange(self.env.action_space.n)
         training = True
-        print("Training...")
+        print("Entrenando...")
         while training:
             state0 = self.env.reset()
             episode_states = []
@@ -226,6 +237,7 @@ class reinforceAgent:
                     # Actualizamos la red cuando se completa el tamaño del batch
                     if self.batch_counter == self.batch_size:
                         self.update(self.batch_states, self.batch_rewards, self.batch_actions)
+                        self.training_loss.append(sum(self.update_loss))
                         self.update_loss = []
 
                         # Reseteamos las variables del epsiodio
@@ -241,19 +253,19 @@ class reinforceAgent:
                     mean_rewards = np.mean(self.training_rewards[-self.nblock:])
                     self.mean_training_rewards.append(mean_rewards)
 
-                    print("\rEpisode {:d} Mean Rewards {:.2f}\t\t".format(
+                    print("\rEpisodio {:d} Recompensa media {:.2f}\t\t".format(
                         episode, mean_rewards), end="")
 
                     # Comprobamos que todavía quedan episodios
                     if episode >= max_episodes:
                         training = False
-                        print('\nEpisode limit reached.')
+                        print('\nLímite de episodios alcanzado')
                         break
 
                     # Termina el juego si la media de recompensas ha llegado al umbral fijado para este juego
                     if mean_rewards >= self.reward_threshold:
                         training = False
-                        print('\nEnvironment solved in {} episodes!'.format(
+                        print('\nEl entorno se resolvió en {} episodios!'.format(
                             episode))
                         break
 
@@ -301,4 +313,11 @@ class reinforceAgent:
         plt.xlabel('Episodes')
         plt.ylabel('Rewards')
         plt.legend(loc="upper left")
+        plt.show()
+    def plot_loss(self):
+        plt.figure(figsize=(12,8))
+        plt.suptitle('Evolución de la pérdida')
+        plt.plot(self.training_loss)
+        plt.xlabel('Episodios')
+        plt.ylabel('Pérdida')
         plt.show()
