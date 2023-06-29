@@ -1,5 +1,3 @@
-from copy import deepcopy, copy
-import gym
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
@@ -30,6 +28,7 @@ class DQNAgent:
         self.total_reward = 0
         self.step_count = 0
         self.state0 = self.env.reset()
+
 
     ## Tomamos una nueva acción
     def take_step(self, eps, mode='train'):
@@ -118,10 +117,9 @@ class DQNAgent:
     def calculate_loss(self, batch):
         # Separamos las variables de la experiencia y las convertimos a tensores
         states, actions, rewards, dones, next_states = [i for i in batch]
-        rewards_vals = torch.FloatTensor(rewards).to(device=self.dnnetwork.device)
+        rewards_vals = torch.FloatTensor(np.array(rewards)).to(device=self.dnnetwork.device)
         actions_vals = torch.LongTensor(np.array(actions)).reshape(-1, 1).to(
             device=self.dnnetwork.device)
-#        dones_t = torch.ByteTensor(dones).to(device=self.dnnetwork.device)
         dones_t = torch.BoolTensor(dones).to(device=self.dnnetwork.device)
 
         # Obtenemos los valores de Q de la red principal
@@ -142,7 +140,6 @@ class DQNAgent:
         return loss
 
     def update(self):
-
         self.dnnetwork.optimizer.zero_grad()  # eliminamos cualquier gradiente pasado
 
         batch = self.buffer.sample_batch(batch_size=self.batch_size)  # seleccionamos un conjunto del buffer
@@ -160,24 +157,32 @@ class DQNAgent:
             self.update_loss.append(loss.detach().numpy())
 
     def plot_rewards(self):
+        coefficients, residuals, _, _, _ = np.polyfit(range(len(self.mean_training_rewards)),
+                                                      self.mean_training_rewards, 1, full=True)
         plt.figure(figsize=(12, 8))
-        plt.plot(self.training_rewards, label='Rewards')
-        plt.plot(self.mean_training_rewards, label='Mean Rewards')
-        plt.axhline(self.reward_threshold, color='r', label="Reward threshold")
-        plt.xlabel('Episodes')
-        plt.ylabel('Rewards')
+        plt.plot(self.training_rewards, label='Recompensas')
+        plt.plot(self.mean_training_rewards, label='Recompensas medias')
+        plt.axhline(self.reward_threshold, color='r', label="Límite recompensa")
+        plt.plot([coefficients[0] * x + coefficients[1] for x in range(len(self.mean_training_rewards))],
+                 label="Tendencia recompensa media")
+        plt.xlabel('Episodios')
+        plt.ylabel('Recompensas')
         plt.legend(loc="upper left")
         plt.show()
+
     def plot_loss(self):
+        coefficients, _, _, _, _ = np.polyfit(range(len(self.training_loss)), self.training_loss, 1, full=True)
         plt.figure(figsize=(12,8))
         plt.suptitle('Evolución de la pérdida')
-        plt.plot(self.training_loss)
+        plt.plot(self.training_loss, label="Pérdida")
+        plt.plot([coefficients[0] * x + coefficients[1] for x in range(len(self.training_loss))], label="Tendencia")
         plt.xlabel('Episodios')
         plt.ylabel('Pérdida')
+        plt.legend(loc="upper right")
         plt.show()
 
 
-class reinforceAgent:
+class ReinforceAgent:
 
     def __init__(self, env, pgnetwork):
 
@@ -283,9 +288,9 @@ class reinforceAgent:
 
     def update(self, batch_s, batch_r, batch_a):
         self.pgnetwork.optimizer.zero_grad()  # eliminamos cualquier gradiente pasado
-        state_t = torch.FloatTensor(batch_s)
-        reward_t = torch.FloatTensor(batch_r)
-        action_t = torch.LongTensor(batch_a)
+        state_t = torch.FloatTensor(np.array(batch_s))
+        reward_t = torch.FloatTensor(np.array(batch_r))
+        action_t = torch.LongTensor(np.array(batch_a))
         loss = self.calculate_loss(state_t, action_t, reward_t)  # calculamos la pérdida
         loss.backward()  # hacemos la diferencia para obtener los gradientes
         self.pgnetwork.optimizer.step()  # aplicamos los gradientes a la red neuronal
@@ -306,18 +311,26 @@ class reinforceAgent:
         return loss
 
     def plot_rewards(self):
+        coefficients, residuals, _, _, _ = np.polyfit(range(len(self.mean_training_rewards)),
+                                                      self.mean_training_rewards, 1, full=True)
         plt.figure(figsize=(12, 8))
-        plt.plot(self.training_rewards, label='Rewards')
-        plt.plot(self.mean_training_rewards, label='Mean Rewards')
-        plt.axhline(self.reward_threshold, color='r', label="Reward threshold")
-        plt.xlabel('Episodes')
-        plt.ylabel('Rewards')
+        plt.plot(self.training_rewards, label='Recompensas')
+        plt.plot(self.mean_training_rewards, label='Recompensas medias')
+        plt.axhline(self.reward_threshold, color='r', label="Límite recompensa")
+        plt.plot([coefficients[0] * x + coefficients[1] for x in range(len(self.mean_training_rewards))],
+                 label="Tendencia recompensa media")
+        plt.xlabel('Episodios')
+        plt.ylabel('Recompensas')
         plt.legend(loc="upper left")
         plt.show()
+
     def plot_loss(self):
+        coefficients, _, _, _, _ = np.polyfit(range(len(self.training_loss)), self.training_loss, 1, full=True)
         plt.figure(figsize=(12,8))
         plt.suptitle('Evolución de la pérdida')
-        plt.plot(self.training_loss)
+        plt.plot(self.training_loss, label="Pérdida")
+        plt.plot([coefficients[0] * x + coefficients[1] for x in range(len(self.training_loss))], label="Tendencia")
         plt.xlabel('Episodios')
         plt.ylabel('Pérdida')
+        plt.legend(loc="upper right")
         plt.show()

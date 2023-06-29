@@ -4,30 +4,30 @@ import numpy as np
 
 class DQN(torch.nn.Module):
 
-    def __init__(self, env, net, learning_rate=1e-3, device='cpu'):
+    def __init__(self, env, net, learning_rate=1e-3, device='cpu', classic=False, lr_input=0.01, lr_output=0.01):
         super(DQN, self).__init__()
         self.device = device
         self.n_inputs = env.observation_space.shape[0]
         self.n_outputs = env.action_space.n
         self.actions = np.arange(env.action_space.n)
         self.learning_rate = learning_rate
+        self.lr_input = lr_input
+        self.lr_output = lr_output
 
         ### Construcción de la red
         self.model = net
 
-        # Se añade nuevo
-        params = []
-        params.append({'params': self.model.q_layers.parameters()})
-        if hasattr(self.model, 'w_input') and self.model.w_input is not None:
-            lr_input = self.learning_rate
-            params.append({'params': self.model.w_input, 'lr': lr_input})
-        if hasattr(self.model, 'w_output') and self.model.w_output is not None:
-            lr_output = self.learning_rate
-            params.append({'params': self.model.w_output, 'lr': lr_output})
+        if classic == True:
+            self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.learning_rate)
 
-        # acaba aquí el añadido
-
-        self.optimizer = torch.optim.RMSprop(params, lr=self.learning_rate)
+        else:
+            self.params = []
+            self.params.append({'params': self.model.q_layers.parameters()})
+#            if hasattr(self.model, 'w_input') and self.model.w_input is not None:
+            self.params.append({'params': self.model.w_input, 'lr': self.lr_input})
+#            if hasattr(self.model, 'w_output') and self.model.w_output is not None:
+            self.params.append({'params': self.model.w_output, 'lr': self.lr_output})
+            self.optimizer = torch.optim.RMSprop(self.params, lr=self.learning_rate)
 
         ### Se ofrece la opción de trabajar con CUDA
         if self.device == 'cuda':
@@ -51,17 +51,29 @@ class DQN(torch.nn.Module):
 
 class PGReinforce(torch.nn.Module):
 
-    def __init__(self, env, net, learning_rate=1e-3, device='cpu'):
+    def __init__(self, env, net, learning_rate=1e-3, device='cpu', classic=False, lr_input=0.01, lr_output=0.01):
         super(PGReinforce, self).__init__()
         self.device = device
         self.n_inputs = env.observation_space.shape[0]
         self.n_outputs = env.action_space.n
         self.learning_rate = learning_rate
+        self.lr_input = lr_input
+        self.lr_output = lr_output
 
-        ### Construcción de la red neuronal
-        self.model = net
 
-        self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        if classic == True:
+            self.model = torch.nn.Sequential(net, torch.nn.Softmax(dim=-1))
+            self.optimizer = torch.optim.RMSprop(self.parameters(), lr=self.learning_rate)
+
+        else:
+            self.model = net
+            self.params = []
+            self.params.append({'params': self.model.q_layers.parameters()})
+            self.params.append({'params': self.model.w_input, 'lr': self.lr_input})
+            self.params.append({'params': self.model.w_output, 'lr': self.lr_output})
+            self.model = torch.nn.Sequential(net, torch.nn.Softmax(dim=-1))
+            self.optimizer = torch.optim.RMSprop(self.params, lr=self.learning_rate)
+
 
         ### Se ofrece la opción de trabajar con cuda
         if self.device == 'cuda':
