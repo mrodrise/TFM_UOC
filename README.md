@@ -1,5 +1,7 @@
-# TFM_UOC
-Trabajo de fin de master de la UOC
+# TRABAJO FINAL DE MASTER
+## Máster Universitario en Ciencia de Datos (Data Science)
+### Estado de la computación cuántica en el aprendizaje por refuerzo y cómo aplicarla en DQN y Reinforce con Línea Base
+
 El objetivo de este trabajo es el de analizar cómo se está aplicando la computación cuántica en problemas de aprendizaje automático con la finalidad de facilitar la adopción de esta nueva tecnología emergente.
 
 La computación cuántica permitirá abarcar problemas más complejos y con mayor cantidad de variables que en computación clásica. Además, contribuirá al decremento de emisiones de gases de efecto invernadero, ya que reducirá el tiempo de computación de los entrenamientos.
